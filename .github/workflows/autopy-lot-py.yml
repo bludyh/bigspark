@@ -11,7 +11,7 @@ jobs:
         uses: deep5050/autopy-lot@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN}}
-          check: all
+          check: latest
           input_type: ipynb
           output_type: py
           output_dir: './code/'
