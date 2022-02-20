@@ -62,3 +62,4 @@ data/processed/*
 !data/processed/readme.md
 data/raw/*
 !data/raw/readme.md
+scratch*
