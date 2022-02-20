@@ -7,13 +7,13 @@
 #       format_version: '1.5'
 #       jupytext_version: 1.13.7
 #   kernelspec:
-#     display_name: Python 3 (ipykernel)
-#     language: python
-#     name: python3
+#     display_name: ''
+#     name: ''
 # ---
 
-# +
+# + tags=[]
 from pyspark.sql import SparkSession
+import pyspark.sql.functions as F
 
 spark = SparkSession.builder.getOrCreate()
 
@@ -35,3 +35,24 @@ split_col = split(df["stock"], "\.", 2)
 df = df.withColumn("stockNo", split_col.getItem(0).cast(IntegerType())).withColumn("stockName", split_col.getItem(1)).select("stockNo", "stockName", "date", "price", "volume")
 
 df.show(truncate=False)
+# -
+
+df.count()
+
+# + tags=[]
+#count null for each col
+df_agg = df.agg(*[F.count(F.when(F.isnull(c), c)).alias(c) for c in df.columns])
+df_agg.show()
+# -
+
+df_pre = df.dropna()
+df_pre.show(truncate=False)
+
+df_pre.count()
+
+# + tags=[]
+cols = df_pre.columns
+print(cols)
+# -
+
+
