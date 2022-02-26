@@ -1,3 +1,8 @@
+"""
+STILL TO DO
+Currently we filter to 1000 records and then check if the first/ last records are empty- we could be filtering out helpful data by doing it in this order. It would be more optimal to find the maximum number X of 'empty' rows in our Nordamerika_USA-S-P dataset. Then we could filter to 1000 rows + X, do the interpolation and then remove the X rows and save the final result.
+"""
+
 # Imports
 from pyspark.sql import SparkSession
 from pyspark.sql import Window
@@ -29,22 +34,19 @@ def date_range(date, step=1, enddate=False):
 
 def fill_linear_interpolation(df,id_col,order_col,value_col,num_dec):
     """
-    Apply linear interpolation to dataframe to fill gaps.
+    Apply linear interpolation to dataframe to fill gaps. Backfill and forwardfill rows if no non-empty entry before/ after.
     Based on https://stackoverflow.com/questions/53077639/pyspark-interpolation-of-missing-values-in-pyspark-dataframe-observed
-    
-    Will also backfill and forwardfill as required.
 
     :param df: spark dataframe
     :param id_col: string or list of column names to partition by the window function
     :param order_col: column to use to order by the window function
     :param value_col: column to be filled
+    :param num_dec: number of decimal places to return interpolated values with
 
     :returns: spark dataframe updated with interpolated values
     """
     # create row number over window and a column with row number only for non missing values
-
     w = Window.partitionBy(id_col).orderBy(order_col)
-
     new_df = df.withColumn('rn_not_null',F.when(F.col(value_col).isNotNull(),F.col('rn')))
 
     # find last non missing value
@@ -73,9 +75,6 @@ def fill_linear_interpolation(df,id_col,order_col,value_col,num_dec):
     return new_df
 
 
-
-
-
 ## STOCK DATA
 schema = StructType([
     StructField("stock", StringType()),
@@ -88,15 +87,6 @@ stocks_df = spark.read.csv("data/raw/MS1.txt", schema=schema, dateFormat="MM/dd/
 
 # Duplicate rows with identical data were identified so these are removed
 stocks_df = stocks_df.distinct()
-
-
-#Sampling data to USA P stocks (1491 stocks)
-#stocks = ['39797.Nordamerika_USA-NYSE-Composite_Waste-Connections-Inc._WCN',
-#          '42276.Nordamerika_USA-S-P100_Exxon-Mobil-Corp._XOM',
-#          '32778.Nordamerika_USA-NASDAQ_Cohu-Inc._COHU',
-#          '38410.Nordamerika_USA-NYSE-Composite_Embraer-Aircraft_ERJ',
-#           '38206.Nordamerika_USA-NYSE-Composite_CNOOC-Ltd.-ADRs_CEO']
-#df_filtered = df.where(F.col('stock').isin(stocks))
 
 stocks_filtered_df = stocks_df.where(F.col('stock').contains('Nordamerika_USA-S-P'))
 
@@ -113,7 +103,7 @@ stocks_proc_df = stock_date_df.join(stocks_filtered_df.select('stock', 'date', '
 #Using 5 decimal places as this is the maximum precision used in our relevant stocks
 stocks_proc_df = fill_linear_interpolation(stocks_proc_df, 'stock', 'rn', 'price', 5)
 
-#processed_data.write.mode("overwrite").csv('data/processed/sample_stock')
+# Saving dataset
 stocks_proc_df.write.mode("overwrite").csv('data/processed/stock')
 
 stock_runtime = time.time()
