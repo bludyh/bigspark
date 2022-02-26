@@ -93,9 +93,10 @@ stocks_filtered_df = stocks_df.where(F.col('stock').contains('Nordamerika_USA-S-
 #Creating date dataframe with row number
 date_df = spark.createDataFrame(((np.array([date_range(datetime.date(2020, 12, 31), enddate=True), range(1,1001)])).T).tolist(), schema=["date", "rn"])
 
-# Creating dataframe that is a combination of every date and stock (can be optimized?)
+# Creating dataframe that is a combination of every date and stock
 stock_distinct = stocks_filtered_df.select('stock').distinct()
-stock_date_df = date_df.crossJoin(stock_distinct)
+# Repartitioning to improve performance
+stock_date_df = date_df.repartition(200, "date").crossJoin(stock_distinct)
 
 # Joining to original stocks data (dropping volume variable)
 stocks_proc_df = stock_date_df.join(stocks_filtered_df.select('stock', 'date', 'price'), on=['stock', 'date'], how='left')
