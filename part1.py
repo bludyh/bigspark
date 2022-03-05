@@ -1,8 +1,3 @@
-"""
-STILL TO DO
-Currently we filter to 1000 records and then check if the first/ last records are empty- we could be filtering out helpful data by doing it in this order. It would be more optimal to find the maximum number X of 'empty' rows in our Nordamerika_USA-S-P dataset. Then we could filter to 1000 rows + X, do the interpolation and then remove the X rows and save the final result.
-"""
-
 # Imports
 from pyspark.sql import SparkSession
 from pyspark.sql import Window
@@ -23,11 +18,19 @@ spark = SparkSession.builder.getOrCreate()
 
 #INTERPOLATION FUNCTIONS
 def date_range(date, step=1, enddate=False):
-    """Return a list of 1000 dates from start date or before enddate."""
+    """Return a list of 1000 dates from start date or before enddate.
+    
+    The list also includes 6 days prior and 6 days after the 1000 dates that will be used.
+    5 days is the maximum number of sequential blank rows in our dataset. 
+    Including the rows prior and after our dates mean that interpolation is always the norm and backfilling/forward filling are only 
+    used when absolutely necessary and not because we filtered out the relevant prior/ following rows.
+    """
     date_range = []
     if enddate == True:
         date = date - datetime.timedelta(days=999)
-    for i in range(1000):
+    
+    date =  date - datetime.timedelta(days=6)
+    for i in range(1012):
         date_range.append(date)
         date = date + datetime.timedelta(days=step)
     return date_range
@@ -91,7 +94,7 @@ stocks_df = stocks_df.distinct()
 stocks_filtered_df = stocks_df.where(F.col('stock').contains('Nordamerika_USA-S-P'))
 
 #Creating date dataframe with row number
-date_df = spark.createDataFrame(((np.array([date_range(datetime.date(2020, 12, 31), enddate=True), range(1,1001)])).T).tolist(), schema=["date", "rn"])
+date_df = spark.createDataFrame(((np.array([date_range(datetime.date(2020, 12, 31), enddate=True), range(-5,1007)])).T).tolist(), schema=["date", "rn"])
 
 # Creating dataframe that is a combination of every date and stock
 stock_distinct = stocks_filtered_df.select('stock').distinct()
@@ -103,6 +106,9 @@ stocks_proc_df = stock_date_df.join(stocks_filtered_df.select('stock', 'date', '
 
 #Using 5 decimal places as this is the maximum precision used in our relevant stocks
 stocks_proc_df = fill_linear_interpolation(stocks_proc_df, 'stock', 'rn', 'price', 5)
+
+# Filter to the 1000 days we are interested in (removing extra data used for interpolation)
+stocks_proc_df = stocks_proc_df.filter((F.col("rn") > 0) & (F.col("rn") < 1001))
 
 # Saving dataset
 stocks_proc_df.write.mode("overwrite").csv('data/processed/stock')
@@ -124,6 +130,8 @@ wiki_df = spark.read.csv("data/raw/wikipedia.csv", schema=schema, dateFormat="yy
 # Removing duplicate rows (occurring from errors saving dataframe)
 wiki_df = wiki_df.distinct()
 
+# Filtering data df to only 1000 dates we're interested in (interpolation not required for this dataset)
+date_df = date_df.filter((F.col("rn") > 0) & (F.col("rn") < 1001))
 # Renaming date column in date dataframe to allow join
 wiki_date_df = date_df.withColumnRenamed("date","timestamp")
 
