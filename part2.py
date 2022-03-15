@@ -21,7 +21,6 @@ spark = (
     .getOrCreate()
 )
 
-
 ## Reading in data
 stock_schema = StructType([
     StructField("stock", StringType()),
@@ -39,9 +38,6 @@ wiki_schema = StructType([
 
 df_wiki = spark.read.csv("/wiki.csv",header=False, schema=wiki_schema)
 df_wiki.repartition(200)
-
-# df_stock = df_stock.filter(F.col("stock").isin(df_stock.select("stock").distinct().rdd.flatMap(lambda x:x).collect()[:40]))
-# df_wiki = df_wiki.filter(F.col("article").isin(df_wiki.select("article").distinct().rdd.flatMap(lambda x:x).collect()[:40]))
 
 df_stock.createOrReplaceTempView("stock")
 df_wiki.createOrReplaceTempView("wiki")
@@ -71,7 +67,6 @@ FROM (SELECT
     collect_list(price) OVER (PARTITION BY stock ORDER BY rn ASC) AS price_list
   FROM stock)
 WHERE rn=1000
-LIMIT 750
 """)
 
 stock_list = stock_list.repartition(200)
@@ -84,7 +79,6 @@ FROM (SELECT
     collect_list(views) OVER (PARTITION BY article ORDER BY rn ASC) AS views_list
   FROM wiki)
 WHERE rn=1000
-LIMIT 750
 """)
 
 article_list = article_list.repartition(200)
@@ -117,5 +111,4 @@ spark.sql("""
 SELECT *
 FROM cos_df
 WHERE cos_sim > 0.997
-ORDER BY cos_sim DESC
-limit 20""").show()
+""").show()
