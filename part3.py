@@ -17,7 +17,7 @@ from pyspark import SparkConf, SparkContext
 
 # In[ ]:
 
-conf = SparkConf().setAppName("part3-thanh").set("spark.driver.maxResultSize","4g")
+conf = SparkConf().setAppName("part3").set("spark.driver.maxResultSize","4g")
 sc = SparkContext(conf=conf)
 
 # # Global
