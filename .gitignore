@@ -62,4 +62,5 @@ data/processed/*
 !data/processed/readme.md
 data/raw/*
 !data/raw/readme.md
+!data/raw/wikipedia.csv
 *.ipynb
