@@ -79,7 +79,7 @@ schema = StructType([
     StructField("volume", DoubleType())
 ])
 # Read csv used so can use schema
-stocks_df = spark.read.csv("file:/opt/data/MS1.txt", schema=schema, dateFormat="MM/dd/yyyy")
+stocks_df = spark.read.csv("/MS1.txt", schema=schema, dateFormat="MM/dd/yyyy")
 
 # Duplicate rows with identical data were identified so these are removed
 stocks_df = stocks_df.distinct()
