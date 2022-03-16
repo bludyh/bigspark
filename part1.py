@@ -34,6 +34,9 @@ def stock_linear_interpolation(df):
     """
     Apply linear interpolation to dataframe to fill gaps. Backfill and forwardfill rows if no non-empty entry before/ after.
     Fixed price column is rounded to 5 digits as this is the maximum precision in price in this dataset.
+    
+    Code based on below but adapted to use SparkSQL and to do backfilling/forwardfilling:
+    https://stackoverflow.com/questions/53077639/pyspark-interpolation-of-missing-values-in-pyspark-dataframe-observed
     """
     
     df.createOrReplaceTempView("df")
